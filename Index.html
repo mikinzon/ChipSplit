@@ -1,0 +1,149 @@
+<!DOCTYPE html><html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מחשבון ז'יטונים</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>מחשבון חלוקת ז'יטונים</h1><label for="players">מספר שחקנים:</label> <input type="number" id="players" min="1" value="4">
+
+<label for="gameType">סוג משחק:</label> <select id="gameType"> <option value="tournament">טורניר</option> <option value="cash">Cash</option> </select>
+
+  <h3>הזן את כמות הז'יטונים לפי צבע:</h3>
+  <div id="chipInputs">
+    <div class="chip-input">
+      <div class="color-box" style="background-color: blue;"></div>
+      <label>כחול:</label>
+      <input type="number" id="blueCount" value="50" min="0">
+    </div>
+    <div class="chip-input">
+      <div class="color-box" style="background-color: red;"></div>
+      <label>אדום:</label>
+      <input type="number" id="redCount" value="40" min="0">
+    </div>
+    <div class="chip-input">
+      <div class="color-box" style="background-color: green;"></div>
+      <label>ירוק:</label>
+      <input type="number" id="greenCount" value="30" min="0">
+    </div>
+    <div class="chip-input">
+      <div class="color-box" style="background-color: black;"></div>
+      <label>שחור:</label>
+      <input type="number" id="blackCount" value="20" min="0">
+    </div>
+  </div>  <h3>הוסף צבע ז'יטון חדש:</h3>
+  <div id="addColorSection">
+    <label>בחר צבע:</label>
+    <select id="newColorSelect">
+      <option value="#ffff00" data-name="צהוב">צהוב</option>
+      <option value="#ff69b4" data-name="ורוד">ורוד</option>
+      <option value="#ffa500" data-name="כתום">כתום</option>
+      <option value="#a52a2a" data-name="חום">חום</option>
+      <option value="#800080" data-name="סגול">סגול</option>
+    </select>
+    <label>כמות ז'יטונים:</label>
+    <input type="number" id="newColorCount" min="1">
+    <button onclick="addChipColor()">הוסף צבע</button>
+  </div><button onclick="calculateChips()">חשב חלוקה</button>
+
+  <div id="result"></div>  <script>
+    let chipValues = {
+      blue: { value: 10, label: 'כחול' },
+      red: { value: 50, label: 'אדום' },
+      green: { value: 100, label: 'ירוק' },
+      black: { value: 500, label: 'שחור' }
+    };
+
+    function getNextChipValue() {
+      const existingValues = Object.values(chipValues).map(c => c.value);
+      return Math.max(...existingValues) * 5;
+    }
+
+    function addChipColor() {
+      const select = document.getElementById('newColorSelect');
+      const colorCode = select.value;
+      const colorName = select.options[select.selectedIndex].dataset.name;
+      const count = parseInt(document.getElementById('newColorCount').value);
+
+      if (!colorName || isNaN(count)) {
+        alert('אנא בחר צבע והזן כמות תקינה.');
+        return;
+      }
+
+      const id = colorName.toLowerCase();
+      if (chipValues[id]) {
+        alert('הצבע כבר קיים.');
+        return;
+      }
+
+      chipValues[id] = { value: getNextChipValue(), label: colorName };
+
+      const container = document.createElement('div');
+      container.className = 'chip-input';
+      container.innerHTML = `
+        <div class="color-box" style="background-color: ${colorCode};"></div>
+        <label>${colorName}:</label>
+        <input type="number" id="${id}Count" value="${count}" min="0">
+      `;
+      document.getElementById('chipInputs').appendChild(container);
+
+      document.getElementById('newColorCount').value = '';
+    }
+
+    function calculateChips() {
+      const players = parseInt(document.getElementById('players').value);
+      const gameType = document.getElementById('gameType').value;
+
+      const chipCounts = {};
+      for (const color in chipValues) {
+        const input = document.getElementById(color + 'Count');
+        chipCounts[color] = input ? parseInt(input.value) : 0;
+      }
+
+      let totalValue = 0;
+      for (const color in chipCounts) {
+        totalValue += chipCounts[color] * chipValues[color].value;
+      }
+
+      let playersChips = [];
+      for (let i = 0; i < players; i++) {
+        playersChips.push({ total: 0 });
+        for (const color in chipCounts) {
+          playersChips[i][color] = 0;
+        }
+      }
+
+      // החלוקה משתנה בין טורניר ל-cash
+      const reserveRatio = gameType === 'cash' ? 0.5 : 1.0;
+
+      for (const color in chipCounts) {
+        const totalAvailable = Math.floor(chipCounts[color] * reserveRatio);
+        const perPlayer = Math.floor(totalAvailable / players);
+
+        for (let i = 0; i < players; i++) {
+          playersChips[i][color] = perPlayer;
+          playersChips[i].total += perPlayer * chipValues[color].value;
+        }
+      }
+
+      let html = '<h3>חלוקת ז\'יטונים:</h3>';
+      html += '<table><tr><th>שחקן</th>';
+      for (const color in chipValues) {
+        html += `<th>${chipValues[color].label} (${chipValues[color].value})</th>`;
+      }
+      html += '<th>סה\'כ ערך</th></tr>';
+
+      playersChips.forEach((chips, index) => {
+        html += `<tr><td>שחקן ${index + 1}</td>`;
+        for (const color in chipValues) {
+          html += `<td>${chips[color]}</td>`;
+        }
+        html += `<td>${chips.total}</td></tr>`;
+      });
+
+      html += '</table>';
+      document.getElementById('result').innerHTML = html;
+    }
+  </script></body>
+</html>
